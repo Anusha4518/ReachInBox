@@ -1,18 +1,39 @@
 import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext.js';
+import { LoginPage } from './pages/LoginPage.js';
+import { DashboardPage } from './pages/DashboardPage.js';
+import { ProtectedRoute } from './components/ProtectedRoute.js';
+
+const AppRoutes: React.FC = () => {
+  const { user, loading } = useAuth();
+
+  return (
+    <Routes>
+      <Route
+        path="/login"
+        element={!loading && user ? <Navigate to="/dashboard" replace /> : <LoginPage />}
+      />
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <DashboardPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+    </Routes>
+  );
+};
 
 export const App: React.FC = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-800">
-      <div className="text-center p-8 bg-white rounded-xl shadow-sm border border-slate-200 max-w-md">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 mb-2">ReachInbox Email Scheduler</h1>
-        <p className="text-sm text-slate-600 mb-4">
-          Production-minded email scheduling application with Redis BullMQ, Ethereal SMTP, and Slack limits.
-        </p>
-        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-          Phase 1: Project Setup Active
-        </span>
-      </div>
-    </div>
+    <AuthProvider>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </AuthProvider>
   );
 };
 

@@ -48,3 +48,4 @@ export const config = {
     maxEmailsPerHour: parseInt(process.env.MAX_EMAILS_PER_HOUR || '200', 10),
   },
 };
+

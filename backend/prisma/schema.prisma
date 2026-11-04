@@ -81,3 +81,4 @@ model SlackIntegration {
 
   @@map("slack_integrations")
 }
+
