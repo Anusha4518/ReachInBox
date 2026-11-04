@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { emailService } from '../services/email.service.js';
 import { extractEmailsFromBuffer, extractEmailsFromString } from '../utils/csvParser.js';
+import { elasticsearchService } from '../services/elasticsearch.service.js';
 
 export const scheduleEmails = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -69,6 +70,18 @@ export const scheduleEmails = async (req: Request, res: Response): Promise<void>
       maxPerHour,
       senderEmail,
     });
+
+    // Asynchronously index created emails to Elasticsearch
+    for (const email of result.emails) {
+      elasticsearchService.indexEmail({
+        id: email.id,
+        userId: email.userId,
+        recipientEmail: email.recipientEmail,
+        subject: email.subject,
+        status: email.status,
+        scheduledAt: email.scheduledAt,
+      });
+    }
 
     res.status(201).json({
       success: true,
@@ -152,5 +165,17 @@ export const getEmailById = async (req: Request, res: Response): Promise<void> =
   } catch (error: any) {
     console.error('Error fetching email details:', error);
     res.status(500).json({ error: 'Failed to fetch email details', message: error.message });
+  }
+};
+
+export const searchEmails = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = (req.user as any)?.id;
+    const query = (req.query.q as string) || '';
+
+    const results = await elasticsearchService.searchEmails(userId, query);
+    res.status(200).json({ query, results });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Search failed', message: error.message });
   }
 };

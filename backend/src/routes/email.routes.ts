@@ -7,6 +7,7 @@ import {
   getScheduledEmails,
   getSentEmails,
   getEmailById,
+  searchEmails,
 } from '../controllers/email.controller.js';
 
 const router = Router();
@@ -18,7 +19,6 @@ const upload = multer({
     fileSize: 5 * 1024 * 1024, // 5MB
   },
   fileFilter: (_req, file, cb) => {
-    // Accept csv, txt, or generic text files
     const allowed = ['.csv', '.txt'];
     const hasAllowedExt = allowed.some((ext) => file.originalname.toLowerCase().endsWith(ext));
     if (hasAllowedExt || file.mimetype.includes('text') || file.mimetype.includes('csv')) {
@@ -31,6 +31,9 @@ const upload = multer({
 
 // Protect all email endpoints with authentication
 router.use(requireAuth);
+
+// Search emails (Elasticsearch / fallback)
+router.get('/search', searchEmails);
 
 // Schedule emails
 router.post('/schedule', upload.single('file'), scheduleEmails);

@@ -10,3 +10,4 @@ export const requireAuth = (req: Request, res: Response, next: NextFunction): vo
     message: 'You must be logged in to access this resource.',
   });
 };
+

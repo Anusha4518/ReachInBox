@@ -1,6 +1,7 @@
 import { prisma } from '../config/db.js';
 import { EmailStatus } from '@prisma/client';
 import { config } from '../config/env.js';
+import { enqueueEmailJob } from '../queues/email.queue.js';
 
 export interface ScheduleEmailPayload {
   userId: string;
@@ -16,6 +17,7 @@ export interface ScheduleEmailPayload {
 export class EmailService {
   /**
    * Persists scheduled emails in MySQL and computes individual staggered scheduled timestamps.
+   * Immediately enqueues each record as a delayed BullMQ job.
    */
   async createScheduledEmails(payload: ScheduleEmailPayload) {
     const {
@@ -88,6 +90,24 @@ export class EmailService {
       }
       return results;
     });
+
+    // Enqueue delayed jobs into BullMQ
+    for (const email of createdEmails) {
+      try {
+        await enqueueEmailJob({
+          id: email.id,
+          userId: email.userId,
+          recipientEmail: email.recipientEmail,
+          subject: email.subject,
+          body: email.body,
+          scheduledAt: email.scheduledAt,
+          senderEmail: effectiveSenderEmail,
+          jobId: email.jobId,
+        });
+      } catch (queueErr) {
+        console.warn(`Could not enqueue email ${email.id} to BullMQ immediately:`, queueErr);
+      }
+    }
 
     return {
       count: createdEmails.length,

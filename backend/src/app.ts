@@ -5,8 +5,11 @@ import session from 'express-session';
 import passport from './config/passport.js';
 import { config } from './config/env.js';
 import { checkDatabaseConnection } from './config/db.js';
+import { checkRedisConnection } from './config/redis.js';
 import authRoutes from './routes/auth.routes.js';
 import emailRoutes from './routes/email.routes.js';
+import slackRoutes from './routes/slack.routes.js';
+import { serverAdapter } from './config/bullBoard.js';
 
 export const createApp = (): Application => {
   const app = express();
@@ -43,17 +46,23 @@ export const createApp = (): Application => {
   // Healthcheck endpoint
   app.get('/api/health', async (_req: Request, res: Response) => {
     const dbConnected = await checkDatabaseConnection();
+    const redisConnected = await checkRedisConnection();
     res.status(200).json({
       status: 'ok',
       service: 'ReachInbox Email Scheduler API',
       database: dbConnected ? 'connected' : 'disconnected (pending MySQL startup)',
+      redis: redisConnected ? 'connected' : 'disconnected (pending Redis startup)',
       timestamp: new Date().toISOString(),
     });
   });
 
+  // BullMQ Dashboard UI (mount on /admin/queues)
+  app.use('/admin/queues', serverAdapter.getRouter());
+
   // API Routes
   app.use('/api/auth', authRoutes);
   app.use('/api/emails', emailRoutes);
+  app.use('/api/slack', slackRoutes);
 
   // Global 404 handler
   app.use((_req: Request, res: Response) => {

@@ -60,3 +60,4 @@ export const extractEmailsFromString = (content: string): ParseResult => {
 export const isValidEmail = (email: string): boolean => {
   return EMAIL_REGEX.test(email.trim());
 };
+

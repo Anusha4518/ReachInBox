@@ -67,3 +67,4 @@ export const devLogin = async (req: Request, res: Response): Promise<void> => {
     res.status(500).json({ error: 'Dev login failed', details: error.message });
   }
 };
+

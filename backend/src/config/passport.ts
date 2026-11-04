@@ -89,3 +89,4 @@ if (config.google.clientId && config.google.clientSecret && config.google.client
 }
 
 export default passport;
+
