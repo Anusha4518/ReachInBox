@@ -6,6 +6,7 @@ import passport from './config/passport.js';
 import { config } from './config/env.js';
 import { checkDatabaseConnection } from './config/db.js';
 import authRoutes from './routes/auth.routes.js';
+import emailRoutes from './routes/email.routes.js';
 
 export const createApp = (): Application => {
   const app = express();
@@ -52,6 +53,7 @@ export const createApp = (): Application => {
 
   // API Routes
   app.use('/api/auth', authRoutes);
+  app.use('/api/emails', emailRoutes);
 
   // Global 404 handler
   app.use((_req: Request, res: Response) => {
