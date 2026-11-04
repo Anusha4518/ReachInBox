@@ -120,3 +120,4 @@ export const SentEmailsTable: React.FC<SentEmailsTableProps> = ({
     </div>
   );
 };
+

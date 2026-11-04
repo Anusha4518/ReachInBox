@@ -27,6 +27,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     window.location.href = '/api/auth/google';
   };
 
+  const loginWithPassword = async (email: string, password: string) => {
+    setLoading(true);
+    try {
+      const response = await api.post<{ user: User }>('/auth/login', { email, password });
+      setUser(response.data.user);
+    } catch (error) {
+      console.error('Password login failed', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const registerWithPassword = async (email: string, password: string, name?: string) => {
+    setLoading(true);
+    try {
+      const response = await api.post<{ user: User }>('/auth/register', { email, password, name });
+      setUser(response.data.user);
+    } catch (error) {
+      console.error('Registration failed', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const devLogin = async () => {
     setLoading(true);
     try {
@@ -51,7 +77,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, loginWithGoogle, devLogin, logout, checkAuth }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        loginWithGoogle,
+        loginWithPassword,
+        registerWithPassword,
+        devLogin,
+        logout,
+        checkAuth,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -64,4 +101,3 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
-

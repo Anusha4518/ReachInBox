@@ -34,3 +34,4 @@ export const checkRedisConnection = async (): Promise<boolean> => {
     return false;
   }
 };
+

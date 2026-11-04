@@ -16,9 +16,10 @@ enum EmailStatus {
 
 model User {
   id               String            @id @default(uuid())
-  googleId         String            @unique
+  googleId         String?           @unique
   name             String
   email            String            @unique
+  password         String?
   avatar           String?
   createdAt        DateTime          @default(now())
 

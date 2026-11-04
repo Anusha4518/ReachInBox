@@ -140,3 +140,4 @@ export const SlackModal: React.FC<SlackModalProps> = ({
     </div>
   );
 };
+

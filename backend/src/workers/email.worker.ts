@@ -160,3 +160,4 @@ if (process.argv[1]?.includes('email.worker')) {
   process.on('SIGINT', shutdownWorker);
   process.on('SIGTERM', shutdownWorker);
 }
+

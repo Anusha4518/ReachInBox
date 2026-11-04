@@ -25,3 +25,4 @@ export interface EmailListResponse {
   totalPages: number;
   emails: EmailRecord[];
 }
+

@@ -132,3 +132,4 @@ export const ScheduledEmailsTable: React.FC<ScheduledEmailsTableProps> = ({
     </div>
   );
 };
+

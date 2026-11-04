@@ -117,3 +117,4 @@ export const syncPendingEmailsFromDatabase = async (): Promise<number> => {
     return 0;
   }
 };
+

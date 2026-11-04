@@ -170,3 +170,4 @@ export const testConnectSlack = async (req: Request, res: Response): Promise<voi
     res.status(500).json({ error: 'Failed to connect test Slack', message: error.message });
   }
 };
+

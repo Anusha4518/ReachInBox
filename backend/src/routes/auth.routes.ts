@@ -1,6 +1,12 @@
 import { Router } from 'express';
 import passport from '../config/passport.js';
-import { getMe, logout, devLogin } from '../controllers/auth.controller.js';
+import {
+  getMe,
+  logout,
+  devLogin,
+  loginWithPassword,
+  registerWithPassword,
+} from '../controllers/auth.controller.js';
 import { config } from '../config/env.js';
 
 const router = Router();
@@ -28,6 +34,10 @@ router.get(
   }
 );
 
+// Email & Password Authentication
+router.post('/login', loginWithPassword);
+router.post('/register', registerWithPassword);
+
 // Current user profile
 router.get('/me', getMe);
 
@@ -38,4 +48,3 @@ router.post('/logout', logout);
 router.post('/dev-login', devLogin);
 
 export default router;
-
