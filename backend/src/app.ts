@@ -2,6 +2,7 @@ import express, { Application, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { config } from './config/env.js';
+import { checkDatabaseConnection } from './config/db.js';
 
 export const createApp = (): Application => {
   const app = express();
@@ -18,10 +19,12 @@ export const createApp = (): Application => {
   app.use(cookieParser());
 
   // Healthcheck endpoint
-  app.get('/api/health', (_req: Request, res: Response) => {
+  app.get('/api/health', async (_req: Request, res: Response) => {
+    const dbConnected = await checkDatabaseConnection();
     res.status(200).json({
       status: 'ok',
       service: 'ReachInbox Email Scheduler API',
+      database: dbConnected ? 'connected' : 'disconnected (pending MySQL startup)',
       timestamp: new Date().toISOString(),
     });
   });
