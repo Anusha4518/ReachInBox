@@ -16,9 +16,7 @@ import {
   Slack,
   Send,
   Search,
-  ExternalLink,
   Sparkles,
-  Layers,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -134,19 +132,6 @@ export const DashboardPage: React.FC = () => {
 
             {/* User Profile & Actions */}
             <div className="flex items-center gap-3">
-              {/* BullMQ Dashboard Link */}
-              <a
-                href="http://localhost:5000/admin/queues"
-                target="_blank"
-                rel="noreferrer"
-                title="Open live BullMQ queue dashboard"
-                className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 hover:border-slate-300 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 transition-colors"
-              >
-                <Layers className="w-3.5 h-3.5 text-purple-600" />
-                <span>BullMQ Queue UI</span>
-                <ExternalLink className="w-3 h-3 opacity-60" />
-              </a>
-
               {/* Slack Connection Pill */}
               <button
                 onClick={() => setIsSlackOpen(true)}
@@ -195,7 +180,7 @@ export const DashboardPage: React.FC = () => {
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">Email Dashboard</h1>
             <p className="text-sm text-slate-500 mt-1">
-              Production email scheduling with BullMQ delayed queues, rate limits, and Ethereal SMTP.
+              Manage and track your scheduled email campaigns and outbound delivery limits.
             </p>
           </div>
           <div className="mt-4 sm:mt-0 flex items-center gap-3">
@@ -217,7 +202,7 @@ export const DashboardPage: React.FC = () => {
               <Clock className="w-4 h-4 text-blue-500" />
             </div>
             <div className="text-2xl font-bold text-slate-900 mt-2">{totalScheduled}</div>
-            <div className="text-xs text-slate-400 mt-1">BullMQ delayed jobs</div>
+            <div className="text-xs text-slate-400 mt-1">Delayed jobs waiting</div>
           </div>
 
           <div className="bg-white p-5 rounded-xl border border-slate-200/80 shadow-xs">
