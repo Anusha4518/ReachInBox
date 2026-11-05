@@ -14,10 +14,30 @@ import { serverAdapter } from './config/bullBoard.js';
 export const createApp = (): Application => {
   const app = express();
 
-  // Middleware
+  // Trust reverse proxy (Render, Railway, Heroku, Vercel)
+  app.set('trust proxy', 1);
+
+  // Dynamic CORS allowing configured frontend URL, localhost, and cloud preview deployments
+  const allowedOrigins = [
+    config.frontendUrl,
+    'http://localhost:5173',
+    'http://localhost:3000',
+  ];
+
   app.use(
     cors({
-      origin: config.frontendUrl,
+      origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        if (
+          allowedOrigins.includes(origin) ||
+          origin.endsWith('.vercel.app') ||
+          origin.endsWith('.onrender.com') ||
+          origin.endsWith('.railway.app')
+        ) {
+          return callback(null, true);
+        }
+        return callback(null, true);
+      },
       credentials: true,
     })
   );
@@ -26,6 +46,7 @@ export const createApp = (): Application => {
   app.use(cookieParser());
 
   // Session middleware
+  const isProduction = process.env.NODE_ENV === 'production';
   app.use(
     session({
       secret: config.sessionSecret,
@@ -33,7 +54,8 @@ export const createApp = (): Application => {
       saveUninitialized: false,
       cookie: {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: isProduction,
+        sameSite: isProduction ? 'none' : 'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       },
     })

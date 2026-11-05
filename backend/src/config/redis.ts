@@ -1,18 +1,28 @@
 import { Redis } from 'ioredis';
 import { config } from './env.js';
 
-export const redisConnection = new Redis({
-  host: config.redis.host,
-  port: config.redis.port,
-  password: config.redis.password,
-  maxRetriesPerRequest: null,
-  enableReadyCheck: false,
-  connectTimeout: 1500,
-  retryStrategy(times) {
-    if (times > 5) return null; // Don't block indefinitely if Redis is down
-    return Math.min(times * 200, 1000);
-  },
-});
+export const redisConnection = config.redis.url
+  ? new Redis(config.redis.url, {
+      maxRetriesPerRequest: null,
+      enableReadyCheck: false,
+      connectTimeout: 5000,
+      retryStrategy(times) {
+        if (times > 5) return null;
+        return Math.min(times * 200, 1000);
+      },
+    })
+  : new Redis({
+      host: config.redis.host,
+      port: config.redis.port,
+      password: config.redis.password,
+      maxRetriesPerRequest: null,
+      enableReadyCheck: false,
+      connectTimeout: 1500,
+      retryStrategy(times) {
+        if (times > 5) return null;
+        return Math.min(times * 200, 1000);
+      },
+    });
 
 redisConnection.on('error', () => {
   // Silent warning for unstarted local Redis
