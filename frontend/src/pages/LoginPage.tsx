@@ -38,7 +38,7 @@ export const LoginPage: React.FC = () => {
       window.location.href = `${apiUrl.replace(/\/$/, '')}/api/auth/google`;
       return;
     }
-    loginWithGoogle();
+    loginWithGoogle(email.trim() || 'anushaharlapur451@gmail.com', name.trim() || 'Anusha Harlapur');
     navigate('/dashboard');
   };
 

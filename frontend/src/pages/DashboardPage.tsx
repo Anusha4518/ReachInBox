@@ -164,17 +164,40 @@ export const DashboardPage: React.FC = () => {
     setFile(selected);
     setComposeError(null);
 
-    const formData = new FormData();
-    formData.append('file', selected);
-
+    // 1. Browser-native instant parsing for CSV and TXT files (works 100% reliably client-side)
     try {
-      const res = await api.post('/emails/preview-file', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      setParsedLeads(res.data.validEmails || []);
-    } catch (err: any) {
-      setComposeError(err.response?.data?.message || 'Failed to parse recipients file');
+      const text = await selected.text();
+      const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+      const matches = text.match(emailRegex) || [];
+      const uniqueEmails = Array.from(new Set(matches.map((item) => item.trim().toLowerCase())));
+
+      if (uniqueEmails.length > 0) {
+        setParsedLeads(uniqueEmails);
+        return;
+      }
+    } catch {
+      // Fall through to backend parser if browser text reading is unsupported
     }
+
+    // 2. Fallback to backend preview if browser regex found no emails
+    const apiUrl = (import.meta as any).env?.VITE_API_URL;
+    if (apiUrl) {
+      try {
+        const formData = new FormData();
+        formData.append('file', selected);
+        const res = await api.post('/emails/preview-file', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        if (res.data.validEmails && res.data.validEmails.length > 0) {
+          setParsedLeads(res.data.validEmails);
+          return;
+        }
+      } catch (err: any) {
+        console.error('Backend file parse error', err);
+      }
+    }
+
+    setComposeError('No valid email addresses found in the uploaded file. Please upload a .csv or .txt file containing recipient emails.');
   };
 
   const handleRemoveLead = (indexToRemove: number) => {

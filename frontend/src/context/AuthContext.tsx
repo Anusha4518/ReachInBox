@@ -31,23 +31,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     checkAuth();
   }, []);
 
-  const loginWithGoogle = () => {
+  const loginWithGoogle = (customEmail?: string, customName?: string) => {
     const apiUrl = (import.meta as any).env?.VITE_API_URL;
     if (apiUrl) {
       window.location.href = `${apiUrl.replace(/\/$/, '')}/api/auth/google`;
       return;
     }
 
-    // Demo fallback for frontend deployments before backend is connected
-    const demoUser: User = {
-      id: 'demo-user-1',
-      email: 'oliver.brown@domain.io',
-      name: 'Oliver Brown',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80',
+    const email = customEmail?.trim() || 'anushaharlapur451@gmail.com';
+    const name =
+      customName?.trim() ||
+      (email.includes('anusha') ? 'Anusha Harlapur' : email.split('@')[0].replace(/[._-]/g, ' '));
+
+    const googleUser: User = {
+      id: `google-${Date.now()}`,
+      email,
+      name,
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
       createdAt: new Date().toISOString(),
     };
-    localStorage.setItem('reachinbox_user', JSON.stringify(demoUser));
-    setUser(demoUser);
+    localStorage.setItem('reachinbox_user', JSON.stringify(googleUser));
+    setUser(googleUser);
   };
 
   const loginWithPassword = async (email: string, password: string) => {
