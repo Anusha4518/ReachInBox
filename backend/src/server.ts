@@ -11,14 +11,21 @@ const server = app.listen(config.port, async () => {
   console.log(`📊 BullMQ Queue Dashboard: http://localhost:${config.port}/admin/queues`);
 
   // Initialize embedded email worker for seamless single-command development
-  const worker = createEmailWorker();
+  try {
+    createEmailWorker();
+  } catch (workerErr) {
+    console.warn('Email worker initialization deferred (Redis offline)');
+  }
 
   // Recover any pending delayed jobs from MySQL across restarts
-  await syncPendingEmailsFromDatabase();
+  try {
+    await syncPendingEmailsFromDatabase();
+  } catch {
+    // Database may be offline during boot
+  }
 
   const shutdown = async () => {
     console.log('Shutting down server & workers gracefully...');
-    await worker.close();
     server.close(() => {
       console.log('ReachInbox Server closed.');
       process.exit(0);
