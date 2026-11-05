@@ -49,9 +49,23 @@ export const DashboardPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'scheduled' | 'sent' | 'compose'>('scheduled');
   const [selectedEmail, setSelectedEmail] = useState<EmailRecord | null>(null);
 
-  // Email lists state
-  const [scheduledEmails, setScheduledEmails] = useState<EmailRecord[]>([]);
-  const [sentEmails, setSentEmails] = useState<EmailRecord[]>([]);
+  // Email lists state with persistent storage
+  const [scheduledEmails, setScheduledEmails] = useState<EmailRecord[]>(() => {
+    try {
+      const saved = localStorage.getItem('reachinbox_scheduled_emails');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [sentEmails, setSentEmails] = useState<EmailRecord[]>(() => {
+    try {
+      const saved = localStorage.getItem('reachinbox_sent_emails');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [loadingScheduled, setLoadingScheduled] = useState(false);
   const [loadingSent, setLoadingSent] = useState(false);
   const [isDemoLoading, setIsDemoLoading] = useState(false);
@@ -96,10 +110,15 @@ export const DashboardPage: React.FC = () => {
   const [composeSuccess, setComposeSuccess] = useState<string | null>(null);
 
   const fetchScheduled = useCallback(async () => {
+    const apiUrl = (import.meta as any).env?.VITE_API_URL;
+    if (!apiUrl) return;
     try {
       setLoadingScheduled(true);
       const res = await api.get('/emails/scheduled?limit=50');
-      setScheduledEmails(res.data.emails || []);
+      if (res.data.emails) {
+        setScheduledEmails(res.data.emails);
+        localStorage.setItem('reachinbox_scheduled_emails', JSON.stringify(res.data.emails));
+      }
     } catch (err) {
       console.error('Failed to fetch scheduled emails', err);
     } finally {
@@ -108,10 +127,15 @@ export const DashboardPage: React.FC = () => {
   }, []);
 
   const fetchSent = useCallback(async () => {
+    const apiUrl = (import.meta as any).env?.VITE_API_URL;
+    if (!apiUrl) return;
     try {
       setLoadingSent(true);
       const res = await api.get('/emails/sent?limit=50');
-      setSentEmails(res.data.emails || []);
+      if (res.data.emails) {
+        setSentEmails(res.data.emails);
+        localStorage.setItem('reachinbox_sent_emails', JSON.stringify(res.data.emails));
+      }
     } catch (err) {
       console.error('Failed to fetch sent emails', err);
     } finally {
@@ -319,10 +343,18 @@ export const DashboardPage: React.FC = () => {
     }));
 
     if (isSendNow) {
-      setSentEmails((prev) => [...newEmails, ...prev]);
+      setSentEmails((prev) => {
+        const updated = [...newEmails, ...prev];
+        localStorage.setItem('reachinbox_sent_emails', JSON.stringify(updated));
+        return updated;
+      });
       setComposeSuccess('Email sent and delivered successfully!');
     } else {
-      setScheduledEmails((prev) => [...newEmails, ...prev]);
+      setScheduledEmails((prev) => {
+        const updated = [...newEmails, ...prev];
+        localStorage.setItem('reachinbox_scheduled_emails', JSON.stringify(updated));
+        return updated;
+      });
       setComposeSuccess(
         `Campaign scheduled for ${sendTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}!`
       );
@@ -757,13 +789,38 @@ export const DashboardPage: React.FC = () => {
                 {/* 6. Email Body Textarea */}
                 <div className="pt-2">
                   <textarea
-                    rows={12}
+                    rows={10}
                     value={body}
                     onChange={(e) => setBody(e.target.value)}
                     placeholder="Type Your Reply..."
                     className="w-full p-3 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition-all resize-y placeholder:text-slate-300 font-sans leading-relaxed"
-                    required
                   />
+                </div>
+
+                {/* 7. Bottom Action Bar */}
+                <div className="flex items-center justify-between pt-3 border-t border-slate-100 flex-wrap gap-2">
+                  <span className="text-[11px] text-slate-400">
+                    Click Send to deliver immediately, or Send Later to schedule outreach.
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsSendLaterOpen(true)}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-emerald-300 text-[#00A854] hover:bg-emerald-50 text-xs font-semibold cursor-pointer transition-colors"
+                    >
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>Send Later</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleScheduleSubmit({ isImmediate: true })}
+                      disabled={composeLoading}
+                      className="px-5 py-1.5 rounded-full bg-[#00A854] hover:bg-[#009248] text-white text-xs font-semibold shadow-xs transition-all disabled:opacity-60 flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>{composeLoading ? 'Sending...' : 'Send'}</span>
+                    </button>
+                  </div>
                 </div>
               </form>
             </div>
