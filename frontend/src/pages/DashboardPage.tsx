@@ -13,7 +13,6 @@ import {
   Clock,
   CheckCircle2,
   AlertTriangle,
-  Slack,
   Send,
   Search,
   Sparkles,
@@ -147,7 +146,7 @@ export const DashboardPage: React.FC = () => {
                 <button
                   onClick={handleLogout}
                   title="Logout"
-                  className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors"
+                  className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   <LogOut className="w-4 h-4" />
                 </button>
@@ -164,13 +163,13 @@ export const DashboardPage: React.FC = () => {
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">Email Dashboard</h1>
             <p className="text-sm text-slate-500 mt-1">
-              Manage and track your scheduled email campaigns and outbound delivery limits.
+              Production email scheduling with BullMQ delayed queues, rate limits, and Ethereal SMTP.
             </p>
           </div>
           <div className="mt-4 sm:mt-0 flex items-center gap-3">
             <button
               onClick={() => setIsComposeOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-medium text-sm shadow-xs transition-all focus:outline-none focus:ring-2 focus:ring-slate-900/20"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-medium text-sm shadow-xs transition-all focus:outline-none focus:ring-2 focus:ring-slate-900/20 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>Compose New Email</span>
@@ -238,7 +237,7 @@ export const DashboardPage: React.FC = () => {
                   setSearchQuery('');
                   setSearchResults(null);
                 }}
-                className="absolute right-12 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-600"
+                className="absolute right-12 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-600 cursor-pointer"
               >
                 Clear
               </button>
@@ -246,7 +245,7 @@ export const DashboardPage: React.FC = () => {
             <button
               type="submit"
               disabled={searchLoading}
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-slate-900 text-white rounded-lg text-xs font-medium hover:bg-slate-800 disabled:opacity-50"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-slate-900 text-white rounded-lg text-xs font-medium hover:bg-slate-800 disabled:opacity-50 cursor-pointer"
             >
               {searchLoading ? '...' : 'Search'}
             </button>
@@ -261,7 +260,7 @@ export const DashboardPage: React.FC = () => {
                 setActiveTab('scheduled');
                 setSearchResults(null);
               }}
-              className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition-colors ${
+              className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition-colors cursor-pointer ${
                 activeTab === 'scheduled' && !searchResults
                   ? 'border-slate-900 text-slate-900'
                   : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -276,7 +275,7 @@ export const DashboardPage: React.FC = () => {
                 setActiveTab('sent');
                 setSearchResults(null);
               }}
-              className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition-colors ${
+              className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition-colors cursor-pointer ${
                 activeTab === 'sent' && !searchResults
                   ? 'border-slate-900 text-slate-900'
                   : 'border-transparent text-slate-500 hover:text-slate-800'

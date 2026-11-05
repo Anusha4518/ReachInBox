@@ -77,7 +77,7 @@ export const ScheduledEmailsTable: React.FC<ScheduledEmailsTableProps> = ({
         </p>
         <button
           onClick={onOpenCompose}
-          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs transition-colors"
+          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs transition-colors cursor-pointer"
         >
           Schedule an Email
         </button>
@@ -92,7 +92,7 @@ export const ScheduledEmailsTable: React.FC<ScheduledEmailsTableProps> = ({
         <span>Showing {emails.length} queued emails</span>
         <button
           onClick={onRefresh}
-          className="flex items-center gap-1.5 hover:text-slate-900 transition-colors"
+          className="flex items-center gap-1.5 hover:text-slate-900 transition-colors cursor-pointer"
         >
           <RefreshCw className="w-3.5 h-3.5" />
           <span>Refresh</span>
@@ -132,4 +132,3 @@ export const ScheduledEmailsTable: React.FC<ScheduledEmailsTableProps> = ({
     </div>
   );
 };
-

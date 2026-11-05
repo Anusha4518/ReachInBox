@@ -76,7 +76,7 @@ export const SentEmailsTable: React.FC<SentEmailsTableProps> = ({
         <span>Showing {emails.length} processed emails</span>
         <button
           onClick={onRefresh}
-          className="flex items-center gap-1.5 hover:text-slate-900 transition-colors"
+          className="flex items-center gap-1.5 hover:text-slate-900 transition-colors cursor-pointer"
         >
           <RefreshCw className="w-3.5 h-3.5" />
           <span>Refresh</span>
@@ -120,4 +120,3 @@ export const SentEmailsTable: React.FC<SentEmailsTableProps> = ({
     </div>
   );
 };
-

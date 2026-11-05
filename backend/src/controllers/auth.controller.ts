@@ -2,6 +2,11 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { prisma } from '../config/db.js';
 
+// Safe bcrypt helper for ESM / CJS module compatibility
+const getBcrypt = () => {
+  return (bcrypt as any)?.hash ? bcrypt : (bcrypt as any)?.default || bcrypt;
+};
+
 // In-memory fallback user store when MySQL is offline or pending credentials in .env
 const inMemoryUsers = new Map<string, any>();
 
@@ -50,7 +55,7 @@ export const registerWithPassword = async (req: Request, res: Response): Promise
     const normalizedEmail = email.trim().toLowerCase();
     const displayName = name?.trim() || normalizedEmail.split('@')[0];
     const avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(normalizedEmail)}`;
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await getBcrypt().hash(password, 10);
 
     let newUser: any = null;
 
@@ -151,7 +156,7 @@ export const loginWithPassword = async (req: Request, res: Response): Promise<vo
       return;
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await getBcrypt().compare(password, user.password);
     if (!isMatch) {
       res.status(401).json({ error: 'Invalid email or password.' });
       return;
