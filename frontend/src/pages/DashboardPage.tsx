@@ -132,24 +132,8 @@ export const DashboardPage: React.FC = () => {
 
             {/* User Profile & Actions */}
             <div className="flex items-center gap-3">
-              {/* Slack Connection Pill */}
-              <button
-                onClick={() => setIsSlackOpen(true)}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
-                  isSlackConnected
-                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
-                    : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                }`}
-              >
-                <Slack className={`w-3.5 h-3.5 ${isSlackConnected ? 'text-emerald-600' : 'text-slate-500'}`} />
-                <span>Slack:</span>
-                <span className={isSlackConnected ? 'font-bold text-emerald-700' : 'text-amber-600 font-semibold'}>
-                  {isSlackConnected ? 'Connected' : 'Connect'}
-                </span>
-              </button>
-
               {/* User Avatar & Logout */}
-              <div className="flex items-center gap-2.5 pl-2 border-l border-slate-200">
+              <div className="flex items-center gap-2.5">
                 <img
                   src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.email || 'Reach'}`}
                   alt={user?.name}
