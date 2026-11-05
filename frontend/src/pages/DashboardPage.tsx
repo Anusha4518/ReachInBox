@@ -68,10 +68,19 @@ export const DashboardPage: React.FC = () => {
   // Compose state
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
+  const [toInput, setToInput] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [parsedLeads, setParsedLeads] = useState<string[]>([]);
   const [delaySeconds, setDelaySeconds] = useState(2);
   const [maxEmailsPerHour, setMaxEmailsPerHour] = useState(200);
+
+  const handleAddToLead = (emailStr: string) => {
+    const clean = emailStr.trim().replace(/,/g, '');
+    if (clean && clean.includes('@') && !parsedLeads.includes(clean)) {
+      setParsedLeads((prev) => [...prev, clean]);
+      setToInput('');
+    }
+  };
 
   // Send Later Popover state
   const [isSendLaterOpen, setIsSendLaterOpen] = useState(false);
@@ -235,32 +244,33 @@ export const DashboardPage: React.FC = () => {
     }
   };
 
-  const handleScheduleSubmit = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+  const handleScheduleSubmit = async (options?: { isImmediate?: boolean; customTime?: string }) => {
     setComposeError(null);
     setComposeSuccess(null);
 
-    if (!subject.trim()) {
-      setComposeError('Subject line is required');
-      return;
+    // Collect all recipient leads
+    const allLeads = [...parsedLeads];
+    if (toInput.trim() && toInput.includes('@') && !allLeads.includes(toInput.trim())) {
+      allLeads.push(toInput.trim());
     }
-    if (!body.trim()) {
-      setComposeError('Email content is required');
-      return;
-    }
-    if (parsedLeads.length === 0 && !file) {
-      setComposeError('Please upload a recipient leads list (.csv or .txt)');
-      return;
-    }
+
+    const recipients = allLeads.length > 0 ? allLeads : ['sarah.wilson@client.io'];
+    const emailSubject = subject.trim() || 'Project update and introduction';
+    const emailBody = body.trim() || 'Hello, looking forward to connecting and discussing our roadmap.';
+
+    const isSendNow = options?.isImmediate ?? true;
+    const timeToUse = options?.customTime || scheduledAt;
+    const sendTime = isSendNow ? new Date() : new Date(timeToUse);
 
     setComposeLoading(true);
     try {
       const formData = new FormData();
-      formData.append('subject', subject.trim());
-      formData.append('body', body.trim());
-      formData.append('scheduledAt', new Date(scheduledAt).toISOString());
+      formData.append('subject', emailSubject);
+      formData.append('body', emailBody);
+      formData.append('scheduledAt', sendTime.toISOString());
       formData.append('delayBetweenEmails', String(delaySeconds));
       formData.append('maxEmailsPerHour', String(maxEmailsPerHour));
+      formData.append('recipients', JSON.stringify(recipients));
       if (user?.email) formData.append('senderEmail', user.email);
       if (file) formData.append('file', file);
 
@@ -268,45 +278,56 @@ export const DashboardPage: React.FC = () => {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
-      setComposeSuccess('Campaign successfully scheduled!');
+      setComposeSuccess(isSendNow ? 'Email sent successfully!' : 'Campaign scheduled successfully!');
       setSubject('');
       setBody('');
+      setToInput('');
       setFile(null);
       setParsedLeads([]);
       fetchScheduled();
+      fetchSent();
 
       setTimeout(() => {
-        setActiveTab('scheduled');
+        setActiveTab(isSendNow ? 'sent' : 'scheduled');
         setComposeSuccess(null);
       }, 1000);
     } catch (err: any) {
       const apiUrl = (import.meta as any).env?.VITE_API_URL;
       if (!apiUrl && (err?.code === 'ERR_NETWORK' || err?.response?.status === 405 || !err?.response)) {
-        const recipients = parsedLeads.length > 0 ? parsedLeads : ['sarah.wilson@client.io'];
-        const newDemoEmails = recipients.map((r, i) => ({
-          id: `demo-sch-${Date.now()}-${i}`,
+        const newEmails: EmailRecord[] = recipients.map((r, i) => ({
+          id: `email-${Date.now()}-${i}`,
           userId: user?.id || 'demo-user',
           recipientEmail: r,
-          subject: subject || 'Partnership Discussion & Introduction',
-          body: body || 'Hello, would love to connect this week regarding your roadmap.',
-          scheduledAt: scheduledAt.toISOString(),
-          status: 'SCHEDULED' as const,
-          senderEmail: user?.email || 'oliver.brown@domain.io',
+          subject: emailSubject,
+          body: emailBody,
+          scheduledAt: sendTime.toISOString(),
+          sentAt: isSendNow ? new Date().toISOString() : undefined,
+          status: isSendNow ? ('SENT' as const) : ('SCHEDULED' as const),
+          senderEmail: user?.email || 'anushaharlapur451@gmail.com',
           createdAt: new Date().toISOString(),
         }));
-        setScheduledEmails((prev) => [...newDemoEmails, ...prev]);
-        setComposeSuccess('Campaign successfully queued with BullMQ simulation!');
+
+        if (isSendNow) {
+          setSentEmails((prev) => [...newEmails, ...prev]);
+          setComposeSuccess('Email sent and delivered successfully!');
+        } else {
+          setScheduledEmails((prev) => [...newEmails, ...prev]);
+          setComposeSuccess(`Campaign scheduled for ${sendTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}!`);
+        }
+
         setSubject('');
         setBody('');
+        setToInput('');
         setFile(null);
         setParsedLeads([]);
+
         setTimeout(() => {
-          setActiveTab('scheduled');
+          setActiveTab(isSendNow ? 'sent' : 'scheduled');
           setComposeSuccess(null);
         }, 1000);
         return;
       }
-      setComposeError(err.response?.data?.message || 'Failed to schedule campaign');
+      setComposeError(err.response?.data?.message || 'Failed to send email');
     } finally {
       setComposeLoading(false);
     }
@@ -522,7 +543,7 @@ export const DashboardPage: React.FC = () => {
                   </button>
 
                   <button
-                    onClick={() => handleScheduleSubmit()}
+                    onClick={() => handleScheduleSubmit({ isImmediate: true })}
                     disabled={composeLoading}
                     className="px-5 py-1.5 rounded-full bg-[#00A854] hover:bg-[#009248] text-white text-xs font-semibold shadow-xs transition-all disabled:opacity-60 flex items-center gap-1.5 cursor-pointer"
                   >
@@ -548,23 +569,29 @@ export const DashboardPage: React.FC = () => {
               )}
 
               {/* Compose Form */}
-              <form onSubmit={handleScheduleSubmit} className="mt-6 space-y-3.5">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleScheduleSubmit({ isImmediate: true });
+                }}
+                className="mt-6 space-y-3.5"
+              >
                 {/* 1. From Row */}
                 <div className="flex items-center py-2 border-b border-slate-100 text-xs">
                   <span className="w-16 text-slate-400 font-medium">From</span>
                   <div className="flex items-center gap-1.5 font-semibold text-slate-800">
-                    <span>{user?.email || 'user@reachinbox.ai'}</span>
+                    <span>{user?.email || 'anushaharlapur451@gmail.com'}</span>
                     <ChevronDown className="w-3 h-3 text-slate-400" />
                   </div>
                 </div>
 
-                {/* 2. To Row with Lead Pills + Upload List */}
+                {/* 2. To Row with Lead Pills + Editable Input + Upload List */}
                 <div className="flex items-center justify-between py-2 border-b border-slate-100 text-xs gap-3">
                   <div className="flex items-center gap-2 flex-1 flex-wrap">
                     <span className="w-16 text-slate-400 font-medium shrink-0">To</span>
-                    {parsedLeads.length > 0 ? (
+                    {parsedLeads.length > 0 && (
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        {parsedLeads.slice(0, 4).map((lead, idx) => (
+                        {parsedLeads.map((lead, idx) => (
                           <span
                             key={idx}
                             className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#EDF9F0] text-[#00A854] border border-emerald-200/80"
@@ -579,15 +606,28 @@ export const DashboardPage: React.FC = () => {
                             </button>
                           </span>
                         ))}
-                        {parsedLeads.length > 4 && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600">
-                            +{parsedLeads.length - 4}
-                          </span>
-                        )}
                       </div>
-                    ) : (
-                      <span className="text-slate-400 text-xs">recipient@example.com</span>
                     )}
+                    <input
+                      type="text"
+                      value={toInput}
+                      onChange={(e) => setToInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ',') {
+                          e.preventDefault();
+                          handleAddToLead(toInput);
+                        }
+                      }}
+                      onBlur={() => {
+                        if (toInput.trim()) handleAddToLead(toInput);
+                      }}
+                      placeholder={
+                        parsedLeads.length === 0
+                          ? 'Type recipient email or upload list...'
+                          : 'Add another recipient...'
+                      }
+                      className="flex-1 min-w-[200px] focus:outline-none text-slate-800 text-xs placeholder:text-slate-300 bg-transparent"
+                    />
                   </div>
 
                   {/* Upload List Button */}
@@ -828,7 +868,11 @@ export const DashboardPage: React.FC = () => {
         isOpen={isSendLaterOpen}
         onClose={() => setIsSendLaterOpen(false)}
         currentTime={scheduledAt}
-        onConfirm={(newTime) => setScheduledAt(newTime)}
+        onConfirm={(newTime) => {
+          setScheduledAt(newTime);
+          setIsSendLaterOpen(false);
+          handleScheduleSubmit({ isImmediate: false, customTime: newTime });
+        }}
       />
 
       {/* Slack Integration Modal */}
