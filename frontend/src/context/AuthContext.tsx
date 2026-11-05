@@ -43,8 +43,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const registerWithPassword = async (email: string, password: string, name?: string) => {
     setLoading(true);
     try {
-      const response = await api.post<{ user: User }>('/auth/register', { email, password, name });
-      setUser(response.data.user);
+      const response = await api.post<{ success: boolean; message: string; email: string }>('/auth/register', {
+        email,
+        password,
+        name,
+      });
+      // Do NOT set user on registration so user can sign in explicitly
+      return response.data;
     } catch (error) {
       console.error('Registration failed', error);
       throw error;

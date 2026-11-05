@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext.js';
-import { Mail, Lock, User as UserIcon, ArrowRight, ShieldCheck, Zap, AlertCircle } from 'lucide-react';
+import { Mail, Lock, User as UserIcon, ArrowRight, ShieldCheck, Zap, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const LoginPage: React.FC = () => {
@@ -14,6 +14,7 @@ export const LoginPage: React.FC = () => {
 
   const [loading, setLoading] = useState(false);
   const [demoLoading, setDemoLoading] = useState(false);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(() => {
     const params = new URLSearchParams(window.location.search);
     const err = params.get('error');
@@ -29,6 +30,7 @@ export const LoginPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
+    setSuccessMsg(null);
 
     if (!email.trim() || !email.includes('@')) {
       setErrorMsg('Please enter a valid email address.');
@@ -42,11 +44,16 @@ export const LoginPage: React.FC = () => {
     setLoading(true);
     try {
       if (mode === 'signup') {
-        await registerWithPassword(email.trim(), password, name.trim());
+        // Register account without auto-redirect
+        const res = await registerWithPassword(email.trim(), password, name.trim());
+        setSuccessMsg(res.message || 'Account created successfully! Please sign in with your credentials.');
+        setMode('signin');
+        setPassword(''); // Clear password so they sign in explicitly
       } else {
+        // Sign In
         await loginWithPassword(email.trim(), password);
+        navigate('/dashboard');
       }
-      navigate('/dashboard');
     } catch (err: any) {
       setErrorMsg(err.response?.data?.error || err.message || 'Authentication failed');
     } finally {
@@ -89,6 +96,7 @@ export const LoginPage: React.FC = () => {
             onClick={() => {
               setMode('signin');
               setErrorMsg(null);
+              setSuccessMsg(null);
             }}
             className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
               mode === 'signin'
@@ -103,6 +111,7 @@ export const LoginPage: React.FC = () => {
             onClick={() => {
               setMode('signup');
               setErrorMsg(null);
+              setSuccessMsg(null);
             }}
             className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
               mode === 'signup'
@@ -114,8 +123,17 @@ export const LoginPage: React.FC = () => {
           </button>
         </div>
 
+        {/* Success Alert (e.g. after registration) */}
+        {successMsg && (
+          <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{successMsg}</span>
+          </div>
+        )}
+
+        {/* Error Alert */}
         {errorMsg && (
-          <div className="mb-4 p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+          <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{errorMsg}</span>
           </div>
@@ -182,7 +200,7 @@ export const LoginPage: React.FC = () => {
             className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs transition-all shadow-xs disabled:opacity-60 mt-1"
           >
             {loading
-              ? 'Authenticating...'
+              ? 'Processing...'
               : mode === 'signup'
               ? 'Create Free Account'
               : 'Sign In with Email'}

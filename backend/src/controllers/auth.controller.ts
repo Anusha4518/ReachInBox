@@ -31,7 +31,7 @@ export const logout = (req: Request, res: Response): void => {
 
 /**
  * Register a new user with Email and Password.
- * Attempts MySQL persistence via Prisma; falls back gracefully to in-memory session if MySQL is starting up.
+ * Creates the user record but does NOT auto-login, allowing the user to sign in explicitly.
  */
 export const registerWithPassword = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -99,17 +99,11 @@ export const registerWithPassword = async (req: Request, res: Response): Promise
       inMemoryUsers.set(normalizedEmail, newUser);
     }
 
-    // Establish session
-    req.login(newUser, (err) => {
-      if (err) {
-        res.status(500).json({ error: 'Session creation failed' });
-        return;
-      }
-      const { password: _, ...userWithoutPassword } = newUser;
-      res.status(201).json({
-        message: 'Account created successfully',
-        user: userWithoutPassword,
-      });
+    // Do NOT auto-login on registration: Return 201 so user can explicitly sign in
+    res.status(201).json({
+      success: true,
+      message: 'Account created successfully! Please sign in with your credentials.',
+      email: normalizedEmail,
     });
   } catch (error: any) {
     console.error('Registration error:', error);
@@ -136,7 +130,7 @@ export const loginWithPassword = async (req: Request, res: Response): Promise<vo
       user = await prisma.user.findUnique({
         where: { email: normalizedEmail },
       });
-    } catch (dbErr) {
+    } catch {
       // Fallback to in-memory store
       user = inMemoryUsers.get(normalizedEmail);
     }
