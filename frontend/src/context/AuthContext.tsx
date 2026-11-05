@@ -11,12 +11,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const checkAuth = async () => {
     try {
       const response = await api.get<{ user: User | null }>('/auth/me');
-      setUser(response.data.user);
+      if (response.data.user) {
+        setUser(response.data.user);
+        localStorage.setItem('reachinbox_user', JSON.stringify(response.data.user));
+        return;
+      }
     } catch {
-      setUser(null);
-    } finally {
-      setLoading(false);
+      // Fallback to cached session for offline/demo deployments
     }
+
+    const cached = localStorage.getItem('reachinbox_user');
+    if (cached) {
+      try {
+        setUser(JSON.parse(cached));
+      } catch {
+        setUser(null);
+      }
+    } else {
+      setUser(null);
+    }
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -24,7 +38,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const loginWithGoogle = () => {
-    window.location.href = '/api/auth/google';
+    const apiUrl = (import.meta as any).env?.VITE_API_URL;
+    if (apiUrl) {
+      window.location.href = `${apiUrl.replace(/\/$/, '')}/api/auth/google`;
+      return;
+    }
+
+    // Demo fallback for frontend deployments before backend is connected
+    const demoUser: User = {
+      id: 'demo-user-1',
+      email: 'oliver.brown@domain.io',
+      name: 'Oliver Brown',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80',
+      createdAt: new Date().toISOString(),
+    };
+    setUser(demoUser);
+    localStorage.setItem('reachinbox_user', JSON.stringify(demoUser));
   };
 
   const loginWithPassword = async (email: string, password: string) => {
@@ -32,7 +61,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const response = await api.post<{ user: User }>('/auth/login', { email, password });
       setUser(response.data.user);
-    } catch (error) {
+      localStorage.setItem('reachinbox_user', JSON.stringify(response.data.user));
+    } catch (error: any) {
+      const apiUrl = (import.meta as any).env?.VITE_API_URL;
+      if (!apiUrl && (error?.code === 'ERR_NETWORK' || !error?.response)) {
+        const demoUser: User = {
+          id: 'demo-user-1',
+          email,
+          name: email.split('@')[0],
+          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
+          createdAt: new Date().toISOString(),
+        };
+        setUser(demoUser);
+        localStorage.setItem('reachinbox_user', JSON.stringify(demoUser));
+        return;
+      }
       console.error('Password login failed', error);
       throw error;
     } finally {

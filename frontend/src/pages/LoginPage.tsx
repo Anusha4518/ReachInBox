@@ -26,6 +26,16 @@ export const LoginPage: React.FC = () => {
     return null;
   });
 
+  const handleGoogleLogin = () => {
+    const apiUrl = (import.meta as any).env?.VITE_API_URL;
+    if (apiUrl) {
+      window.location.href = `${apiUrl.replace(/\/$/, '')}/api/auth/google`;
+      return;
+    }
+    loginWithGoogle();
+    navigate('/dashboard');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
@@ -76,7 +86,7 @@ export const LoginPage: React.FC = () => {
         {/* Google Login Button (Figma Soft Green Tint) */}
         <button
           type="button"
-          onClick={loginWithGoogle}
+          onClick={handleGoogleLogin}
           className="w-full flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-medium text-xs border border-emerald-200/80 transition-colors shadow-2xs mb-5 cursor-pointer"
         >
           <svg className="w-4 h-4" viewBox="0 0 24 24">
