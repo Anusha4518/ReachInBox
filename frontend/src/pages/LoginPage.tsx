@@ -14,7 +14,17 @@ export const LoginPage: React.FC = () => {
 
   const [loading, setLoading] = useState(false);
   const [demoLoading, setDemoLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const err = params.get('error');
+    if (err === 'google_not_configured') {
+      return 'Google OAuth keys are not set in backend/.env yet. To test immediately, please use Email/Password above or click "Sign in as Demo User" below!';
+    }
+    if (err === 'auth_failed') {
+      return 'Google sign-in was cancelled or failed. Please try again.';
+    }
+    return null;
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

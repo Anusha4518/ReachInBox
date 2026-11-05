@@ -14,10 +14,8 @@ const router = Router();
 // Google OAuth initiate
 router.get('/google', (req, res, next) => {
   if (!config.google.clientId || config.google.clientId === 'your_google_client_id_here') {
-    res.status(400).json({
-      error: 'Google OAuth not configured',
-      message: 'Please provide GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in backend/.env',
-    });
+    // Redirect gracefully back to login page with explanatory error flag
+    res.redirect(`${config.frontendUrl}/login?error=google_not_configured`);
     return;
   }
   passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);

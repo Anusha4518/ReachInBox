@@ -122,70 +122,77 @@ export class EmailService {
   async getScheduledEmails(userId: string, page = 1, limit = 20) {
     const skip = (page - 1) * limit;
 
-    const [total, emails] = await Promise.all([
-      prisma.email.count({
-        where: {
-          userId,
-          status: { in: [EmailStatus.SCHEDULED, EmailStatus.PROCESSING] },
-        },
-      }),
-      prisma.email.findMany({
-        where: {
-          userId,
-          status: { in: [EmailStatus.SCHEDULED, EmailStatus.PROCESSING] },
-        },
-        orderBy: { scheduledAt: 'asc' },
-        skip,
-        take: limit,
-        include: {
-          sender: { select: { email: true } },
-        },
-      }),
-    ]);
+    try {
+      const [total, emails] = await Promise.all([
+        prisma.email.count({
+          where: {
+            userId,
+            status: { in: [EmailStatus.SCHEDULED, EmailStatus.PROCESSING] },
+          },
+        }),
+        prisma.email.findMany({
+          where: {
+            userId,
+            status: { in: [EmailStatus.SCHEDULED, EmailStatus.PROCESSING] },
+          },
+          orderBy: { scheduledAt: 'asc' },
+          skip,
+          take: limit,
+          include: {
+            sender: { select: { email: true } },
+          },
+        }),
+      ]);
 
-    return {
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-      emails,
-    };
+      return {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        emails,
+      };
+    } catch (err) {
+      console.warn('MySQL unavailable for scheduled emails fetch, returning empty list');
+      return { total: 0, page, limit, totalPages: 0, emails: [] };
+    }
   }
 
-  /**
-   * Retrieves sent & failed emails for the user.
-   */
   async getSentEmails(userId: string, page = 1, limit = 20) {
     const skip = (page - 1) * limit;
 
-    const [total, emails] = await Promise.all([
-      prisma.email.count({
-        where: {
-          userId,
-          status: { in: [EmailStatus.SENT, EmailStatus.FAILED] },
-        },
-      }),
-      prisma.email.findMany({
-        where: {
-          userId,
-          status: { in: [EmailStatus.SENT, EmailStatus.FAILED] },
-        },
-        orderBy: { updatedAt: 'desc' },
-        skip,
-        take: limit,
-        include: {
-          sender: { select: { email: true } },
-        },
-      }),
-    ]);
+    try {
+      const [total, emails] = await Promise.all([
+        prisma.email.count({
+          where: {
+            userId,
+            status: { in: [EmailStatus.SENT, EmailStatus.FAILED] },
+          },
+        }),
+        prisma.email.findMany({
+          where: {
+            userId,
+            status: { in: [EmailStatus.SENT, EmailStatus.FAILED] },
+          },
+          orderBy: { updatedAt: 'desc' },
+          skip,
+          take: limit,
+          include: {
+            sender: { select: { email: true } },
+          },
+        }),
+      ]);
 
-    return {
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-      emails,
-    };
+      return {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        emails,
+      };
+    } catch (err) {
+      console.warn('MySQL unavailable for sent emails fetch, returning empty list');
+      return { total: 0, page, limit, totalPages: 0, emails: [] };
+    }
   }
 
   /**

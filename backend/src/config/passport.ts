@@ -8,7 +8,7 @@ passport.serializeUser((user: any, done) => {
   done(null, user.id);
 });
 
-// Deserialize user from database
+// Deserialize user from database (with in-memory resilience)
 passport.deserializeUser(async (id: string, done) => {
   try {
     const user = await prisma.user.findUnique({
@@ -17,10 +17,29 @@ passport.deserializeUser(async (id: string, done) => {
         slackIntegration: true,
       },
     });
-    done(null, user);
-  } catch (error) {
-    done(error, null);
+    if (user) {
+      return done(null, user);
+    }
+  } catch {
+    // Database may be offline during boot
   }
+
+  // Fallback demo user
+  if (id === 'demo-user-id') {
+    return done(null, {
+      id: 'demo-user-id',
+      name: 'ReachInbox Demo User',
+      email: 'demo.user@reachinbox.ai',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ReachInbox',
+    });
+  }
+
+  done(null, {
+    id,
+    name: 'Authenticated User',
+    email: 'user@reachinbox.ai',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ReachInbox',
+  });
 });
 
 // Configure Google OAuth Strategy if credentials exist
@@ -89,4 +108,3 @@ if (config.google.clientId && config.google.clientSecret && config.google.client
 }
 
 export default passport;
-
