@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext.js';
-import { Mail, Lock, User as UserIcon, ArrowRight, ShieldCheck, Zap, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Mail, Lock, User as UserIcon, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const LoginPage: React.FC = () => {
-  const { loginWithGoogle, loginWithPassword, registerWithPassword, devLogin } = useAuth();
+  const { loginWithGoogle, loginWithPassword, registerWithPassword } = useAuth();
   const navigate = useNavigate();
 
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
@@ -13,13 +13,12 @@ export const LoginPage: React.FC = () => {
   const [name, setName] = useState('');
 
   const [loading, setLoading] = useState(false);
-  const [demoLoading, setDemoLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(() => {
     const params = new URLSearchParams(window.location.search);
     const err = params.get('error');
     if (err === 'google_not_configured') {
-      return 'Google OAuth keys are not set in backend/.env yet. To test immediately, please use Email/Password above or click "Sign in as Demo User" below!';
+      return 'Google OAuth keys are not set in backend/.env yet. Please use Email & Password above.';
     }
     if (err === 'auth_failed') {
       return 'Google sign-in was cancelled or failed. Please try again.';
@@ -58,19 +57,6 @@ export const LoginPage: React.FC = () => {
       setErrorMsg(err.response?.data?.error || err.message || 'Authentication failed');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleDevLogin = async () => {
-    try {
-      setDemoLoading(true);
-      setErrorMsg(null);
-      await devLogin();
-      navigate('/dashboard');
-    } catch {
-      setErrorMsg('Failed to sign in with demo account. Ensure backend is running.');
-    } finally {
-      setDemoLoading(false);
     }
   };
 
@@ -197,7 +183,7 @@ export const LoginPage: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs transition-all shadow-xs disabled:opacity-60 mt-1"
+            className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs transition-all shadow-xs disabled:opacity-60 mt-1 cursor-pointer"
           >
             {loading
               ? 'Processing...'
@@ -216,13 +202,13 @@ export const LoginPage: React.FC = () => {
           <div className="border-t border-slate-200 w-full" />
         </div>
 
-        {/* Social Auth & Demo */}
-        <div className="space-y-2.5">
+        {/* Social Auth */}
+        <div>
           {/* Real Google OAuth Button */}
           <button
             type="button"
             onClick={loginWithGoogle}
-            className="w-full flex items-center justify-center gap-3 px-4 py-2 rounded-xl border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-medium text-xs transition-all shadow-2xs"
+            className="w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-xl border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-medium text-xs transition-all shadow-2xs cursor-pointer"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24">
               <path
@@ -244,30 +230,6 @@ export const LoginPage: React.FC = () => {
             </svg>
             <span>Continue with Google</span>
           </button>
-
-          {/* Dev Demo Login Button */}
-          <button
-            type="button"
-            onClick={handleDevLogin}
-            disabled={demoLoading}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs transition-colors disabled:opacity-60"
-          >
-            <Zap className="w-3.5 h-3.5 text-amber-500" />
-            <span>{demoLoading ? 'Signing in...' : 'Sign in as Demo User'}</span>
-            <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-          </button>
-        </div>
-
-        {/* Feature Highlights */}
-        <div className="mt-6 pt-5 border-t border-slate-100 space-y-2 text-[11px] text-slate-500">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-            <span>Secure BullMQ delayed jobs with Redis backend</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-            <span>Configurable concurrency & hourly rate limiter</span>
-          </div>
         </div>
       </div>
     </div>
