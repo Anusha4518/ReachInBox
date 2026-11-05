@@ -128,6 +128,12 @@ export const DashboardPage: React.FC = () => {
     fetchSent();
     fetchSlackStatus();
 
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('slack') === 'connected') {
+      fetchSlackStatus();
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
     const interval = setInterval(() => {
       fetchScheduled();
       fetchSent();
