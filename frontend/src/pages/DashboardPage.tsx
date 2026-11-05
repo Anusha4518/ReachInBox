@@ -37,7 +37,6 @@ import {
   Image,
   Type,
   Bell,
-  Cpu,
   Layers,
   ExternalLink,
   ShieldCheck,
@@ -379,38 +378,6 @@ export const DashboardPage: React.FC = () => {
                 </span>
               </button>
             </nav>
-          </div>
-
-          {/* DELIVERY ENGINE Section (Fills the Sidebar Space & Highlights Assignment Requirements) */}
-          <div className="pt-2">
-            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">
-              DELIVERY ENGINE
-            </div>
-            <div className="p-3 bg-[#F8FAFC] border border-slate-200/70 rounded-2xl text-[11px] space-y-2.5 text-slate-600">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400">Worker Status:</span>
-                <span className="inline-flex items-center gap-1.5 font-semibold text-[#00A854]">
-                  <span className="w-2 h-2 rounded-full bg-[#00A854] animate-pulse" />
-                  BullMQ Active
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400">Concurrency:</span>
-                <span className="font-semibold text-slate-800">5 workers</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400">Provider Delay:</span>
-                <span className="font-semibold text-slate-800">2.0s</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400">Hourly Rate Limit:</span>
-                <span className="font-semibold text-slate-800">200 / hr</span>
-              </div>
-              <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 text-[10px]">
-                <span className="text-slate-400">SMTP:</span>
-                <span className="font-medium text-slate-600 truncate max-w-[110px]">Ethereal Fake SMTP</span>
-              </div>
-            </div>
           </div>
         </div>
 

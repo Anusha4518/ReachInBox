@@ -16,7 +16,6 @@ export const SlackModal: React.FC<SlackModalProps> = ({
   onStatusChange,
 }) => {
   const [loading, setLoading] = useState(false);
-  const [testWebhook, setTestWebhook] = useState('');
   const [channel, setChannel] = useState('#email-alerts');
 
   if (!isOpen) return null;
@@ -29,7 +28,7 @@ export const SlackModal: React.FC<SlackModalProps> = ({
     setLoading(true);
     try {
       await api.post('/slack/test-connect', {
-        webhookUrl: testWebhook.trim() || 'https://hooks.slack.com/services/DEMO/REACHINBOX/TEST',
+        webhookUrl: 'https://hooks.slack.com/services/DEMO/REACHINBOX/TEST',
         channel: channel.trim(),
       });
       onStatusChange();

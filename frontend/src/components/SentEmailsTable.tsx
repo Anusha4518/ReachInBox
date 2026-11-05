@@ -1,6 +1,6 @@
 import React from 'react';
 import { EmailRecord } from '../types/email.js';
-import { Send, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { Send, RefreshCw } from 'lucide-react';
 
 interface SentEmailsTableProps {
   emails: EmailRecord[];
