@@ -258,7 +258,7 @@ export const DashboardPage: React.FC = () => {
       }, 1000);
     } catch (err: any) {
       const apiUrl = (import.meta as any).env?.VITE_API_URL;
-      if (!apiUrl && (err?.code === 'ERR_NETWORK' || !err?.response)) {
+      if (!apiUrl && (err?.code === 'ERR_NETWORK' || err?.response?.status === 405 || !err?.response)) {
         const recipients = parsedLeads.length > 0 ? parsedLeads : ['sarah.wilson@client.io'];
         const newDemoEmails = recipients.map((r, i) => ({
           id: `demo-sch-${Date.now()}-${i}`,

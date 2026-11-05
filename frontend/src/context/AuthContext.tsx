@@ -64,7 +64,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('reachinbox_user', JSON.stringify(response.data.user));
     } catch (error: any) {
       const apiUrl = (import.meta as any).env?.VITE_API_URL;
-      if (!apiUrl && (error?.code === 'ERR_NETWORK' || !error?.response)) {
+      if (!apiUrl && (error?.code === 'ERR_NETWORK' || error?.response?.status === 405 || !error?.response)) {
         const demoUser: User = {
           id: 'demo-user-1',
           email,
@@ -93,7 +93,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       // Do NOT set user on registration so user can sign in explicitly
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
+      const apiUrl = (import.meta as any).env?.VITE_API_URL;
+      if (!apiUrl && (error?.code === 'ERR_NETWORK' || error?.response?.status === 405 || !error?.response)) {
+        return {
+          success: true,
+          message: 'Account created successfully! Please sign in with your credentials.',
+          email,
+        };
+      }
       console.error('Registration failed', error);
       throw error;
     } finally {
