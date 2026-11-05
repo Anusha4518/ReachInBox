@@ -2,6 +2,7 @@ import { prisma } from '../config/db.js';
 import { EmailStatus } from '@prisma/client';
 import { config } from '../config/env.js';
 import { enqueueEmailJob } from '../queues/email.queue.js';
+import { smtpService } from './smtp.service.js';
 
 export interface ScheduleEmailPayload {
   userId: string;
@@ -14,9 +15,12 @@ export interface ScheduleEmailPayload {
   senderEmail?: string;
 }
 
+// In-memory email store for development when MySQL is offline or pending credentials
+const inMemoryEmails: any[] = [];
+
 export class EmailService {
   /**
-   * Persists scheduled emails in MySQL and computes individual staggered scheduled timestamps.
+   * Persists scheduled emails in MySQL (or in-memory fallback) and computes individual staggered scheduled timestamps.
    * Immediately enqueues each record as a delayed BullMQ job.
    */
   async createScheduledEmails(payload: ScheduleEmailPayload) {
@@ -26,72 +30,105 @@ export class EmailService {
       body,
       scheduledAt,
       recipientEmails,
-      delaySeconds = Math.floor(config.worker.emailDelayMs / 1000),
+      delaySeconds = Math.floor(config.worker.emailDelayMs / 1000) || 2,
       senderEmail,
     } = payload;
 
-    // Get user details to obtain default sender email
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
+    let effectiveSenderEmail = senderEmail || 'user@reachinbox.ai';
+    let senderId: string | null = null;
+    let isDbAvailable = true;
 
-    if (!user) {
-      throw new Error('User not found');
-    }
+    try {
+      // 1. Try MySQL to get user and sender
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+      });
+      if (user && !senderEmail) {
+        effectiveSenderEmail = user.email;
+      }
 
-    const effectiveSenderEmail = senderEmail || user.email;
-
-    // Find or create sender record
-    const sender = await prisma.sender.upsert({
-      where: {
-        userId_email: {
+      const sender = await prisma.sender.upsert({
+        where: {
+          userId_email: {
+            userId,
+            email: effectiveSenderEmail,
+          },
+        },
+        update: {},
+        create: {
           userId,
           email: effectiveSenderEmail,
         },
-      },
-      update: {},
-      create: {
-        userId,
-        email: effectiveSenderEmail,
-      },
-    });
+      });
+      senderId = sender.id;
+    } catch {
+      isDbAvailable = false;
+      console.warn('MySQL unavailable, using in-memory store for email scheduling');
+    }
 
     const baseTime = new Date(scheduledAt).getTime();
     const delayMs = delaySeconds * 1000;
 
-    // Build email records with staggered scheduling times
-    const records = recipientEmails.map((recipientEmail, index) => {
-      // Stagger each recipient by the configured delay
-      const individualScheduledAt = new Date(baseTime + index * delayMs);
-      return {
-        userId,
-        senderId: sender.id,
-        recipientEmail,
-        subject,
-        body,
-        scheduledAt: individualScheduledAt,
-        status: EmailStatus.SCHEDULED,
-      };
-    });
+    let createdEmails: any[] = [];
 
-    // Execute transaction to insert records and set deterministic job IDs
-    const createdEmails = await prisma.$transaction(async (tx) => {
-      const results = [];
-      for (const rec of records) {
-        const email = await tx.email.create({
-          data: rec,
+    if (isDbAvailable) {
+      try {
+        const records = recipientEmails.map((recipientEmail, index) => {
+          const individualScheduledAt = new Date(baseTime + index * delayMs);
+          return {
+            userId,
+            senderId,
+            recipientEmail,
+            subject,
+            body,
+            scheduledAt: individualScheduledAt,
+            status: EmailStatus.SCHEDULED,
+          };
         });
-        // Deterministic jobId ensures idempotency across restarts
-        const updated = await tx.email.update({
-          where: { id: email.id },
-          data: { jobId: `job_${email.id}` },
+
+        createdEmails = await prisma.$transaction(async (tx) => {
+          const results = [];
+          for (const rec of records) {
+            const email = await tx.email.create({ data: rec });
+            const updated = await tx.email.update({
+              where: { id: email.id },
+              data: { jobId: `job_${email.id}` },
+            });
+            results.push(updated);
+          }
+          return results;
         });
-        results.push(updated);
+      } catch {
+        isDbAvailable = false;
       }
-      return results;
-    });
+    }
 
-    // Enqueue delayed jobs into BullMQ
+    if (!isDbAvailable || createdEmails.length === 0) {
+      // In-memory fallback
+      createdEmails = recipientEmails.map((recipientEmail, index) => {
+        const individualScheduledAt = new Date(baseTime + index * delayMs);
+        const emailId = `eml_${Date.now()}_${index}`;
+        const record = {
+          id: emailId,
+          userId,
+          senderId: null,
+          recipientEmail,
+          subject,
+          body,
+          scheduledAt: individualScheduledAt,
+          sentAt: null,
+          status: 'SCHEDULED',
+          jobId: `job_${emailId}`,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          sender: { email: effectiveSenderEmail },
+        };
+        inMemoryEmails.push(record);
+        return record;
+      });
+    }
+
+    // Enqueue delayed jobs into BullMQ (with in-memory simulated worker fallback)
     for (const email of createdEmails) {
       try {
         await enqueueEmailJob({
@@ -100,19 +137,40 @@ export class EmailService {
           recipientEmail: email.recipientEmail,
           subject: email.subject,
           body: email.body,
-          scheduledAt: email.scheduledAt,
+          scheduledAt: new Date(email.scheduledAt),
           senderEmail: effectiveSenderEmail,
           jobId: email.jobId,
         });
-      } catch (queueErr) {
-        console.warn(`Could not enqueue email ${email.id} to BullMQ immediately:`, queueErr);
+      } catch {
+        // If Redis is offline, simulate job execution in-memory at scheduled time
+        const targetTime = new Date(email.scheduledAt).getTime();
+        const timeoutMs = Math.max(0, targetTime - Date.now());
+
+        setTimeout(async () => {
+          try {
+            console.log(`📨 [Simulated Worker] Delivering email to: ${email.recipientEmail}`);
+            email.status = 'PROCESSING';
+            const smtpRes = await smtpService.sendEmail({
+              from: effectiveSenderEmail,
+              to: email.recipientEmail,
+              subject: email.subject,
+              body: email.body,
+            });
+            email.status = 'SENT';
+            email.sentAt = new Date().toISOString();
+            console.log(`✅ [Simulated Worker] Sent to ${email.recipientEmail} (${smtpRes.previewUrl})`);
+          } catch (e: any) {
+            email.status = 'FAILED';
+            console.error(`❌ [Simulated Worker] Failed for ${email.recipientEmail}:`, e.message);
+          }
+        }, timeoutMs);
       }
     }
 
     return {
       count: createdEmails.length,
       emails: createdEmails,
-      sender: sender.email,
+      sender: effectiveSenderEmail,
     };
   }
 
@@ -144,19 +202,31 @@ export class EmailService {
         }),
       ]);
 
-      return {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-        emails,
-      };
-    } catch (err) {
-      console.warn('MySQL unavailable for scheduled emails fetch, returning empty list');
-      return { total: 0, page, limit, totalPages: 0, emails: [] };
+      if (total > 0) {
+        return { total, page, limit, totalPages: Math.ceil(total / limit), emails };
+      }
+    } catch {
+      // Fall through to in-memory
     }
+
+    // In-memory fallback
+    const filtered = inMemoryEmails
+      .filter((e) => e.userId === userId && (e.status === 'SCHEDULED' || e.status === 'PROCESSING'))
+      .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+
+    const pageEmails = filtered.slice(skip, skip + limit);
+    return {
+      total: filtered.length,
+      page,
+      limit,
+      totalPages: Math.ceil(filtered.length / limit),
+      emails: pageEmails,
+    };
   }
 
+  /**
+   * Retrieves sent & failed emails for the user.
+   */
   async getSentEmails(userId: string, page = 1, limit = 20) {
     const skip = (page - 1) * limit;
 
@@ -182,32 +252,40 @@ export class EmailService {
         }),
       ]);
 
-      return {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-        emails,
-      };
-    } catch (err) {
-      console.warn('MySQL unavailable for sent emails fetch, returning empty list');
-      return { total: 0, page, limit, totalPages: 0, emails: [] };
+      if (total > 0) {
+        return { total, page, limit, totalPages: Math.ceil(total / limit), emails };
+      }
+    } catch {
+      // Fall through to in-memory
     }
+
+    // In-memory fallback
+    const filtered = inMemoryEmails
+      .filter((e) => e.userId === userId && (e.status === 'SENT' || e.status === 'FAILED'))
+      .sort((a, b) => new Date(b.sentAt || b.updatedAt).getTime() - new Date(a.sentAt || a.updatedAt).getTime());
+
+    const pageEmails = filtered.slice(skip, skip + limit);
+    return {
+      total: filtered.length,
+      page,
+      limit,
+      totalPages: Math.ceil(filtered.length / limit),
+      emails: pageEmails,
+    };
   }
 
   /**
    * Retrieves single email by ID.
    */
   async getEmailById(userId: string, emailId: string) {
-    return prisma.email.findFirst({
-      where: {
-        id: emailId,
-        userId,
-      },
-      include: {
-        sender: true,
-      },
-    });
+    try {
+      return await prisma.email.findFirst({
+        where: { id: emailId, userId },
+        include: { sender: true },
+      });
+    } catch {
+      return inMemoryEmails.find((e) => e.id === emailId && e.userId === userId) || null;
+    }
   }
 }
 

@@ -71,16 +71,20 @@ export const scheduleEmails = async (req: Request, res: Response): Promise<void>
       senderEmail,
     });
 
-    // Asynchronously index created emails to Elasticsearch
+    // Asynchronously index created emails to Elasticsearch (safe fallback)
     for (const email of result.emails) {
-      elasticsearchService.indexEmail({
-        id: email.id,
-        userId: email.userId,
-        recipientEmail: email.recipientEmail,
-        subject: email.subject,
-        status: email.status,
-        scheduledAt: email.scheduledAt,
-      });
+      try {
+        elasticsearchService.indexEmail({
+          id: email.id,
+          userId: email.userId,
+          recipientEmail: email.recipientEmail,
+          subject: email.subject,
+          status: email.status,
+          scheduledAt: email.scheduledAt,
+        });
+      } catch {
+        // Non-fatal if Elasticsearch is offline
+      }
     }
 
     res.status(201).json({

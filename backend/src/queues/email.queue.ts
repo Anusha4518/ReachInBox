@@ -1,5 +1,5 @@
 import { Queue, JobsOptions } from 'bullmq';
-import { redisConnection } from '../config/redis.js';
+import { redisConnection, checkRedisConnection } from '../config/redis.js';
 import { prisma } from '../config/db.js';
 import { EmailStatus } from '@prisma/client';
 
@@ -46,6 +46,12 @@ export const enqueueEmailJob = async (email: {
   senderEmail: string;
   jobId?: string | null;
 }) => {
+  // Check if Redis is online before attempting to enqueue
+  const isRedisOnline = await checkRedisConnection();
+  if (!isRedisOnline) {
+    throw new Error('Redis is offline. Job will run in resilient local runner.');
+  }
+
   const targetTime = new Date(email.scheduledAt).getTime();
   const now = Date.now();
   const delay = Math.max(0, targetTime - now);
