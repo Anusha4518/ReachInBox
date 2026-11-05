@@ -4,8 +4,9 @@ import { useAuth } from '../context/AuthContext.js';
 
 export const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading } = useAuth();
+  const cachedUser = !user ? localStorage.getItem('reachinbox_user') : null;
 
-  if (loading) {
+  if (loading && !cachedUser) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-3">
@@ -16,7 +17,7 @@ export const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ childr
     );
   }
 
-  if (!user) {
+  if (!user && !cachedUser) {
     return <Navigate to="/login" replace />;
   }
 

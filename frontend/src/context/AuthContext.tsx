@@ -5,8 +5,15 @@ import { User, AuthContextType } from '../types/auth.js';
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(() => {
+    try {
+      const cached = localStorage.getItem('reachinbox_user');
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [loading, setLoading] = useState(false);
 
   const checkAuth = async () => {
     try {
@@ -14,23 +21,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (response.data.user) {
         setUser(response.data.user);
         localStorage.setItem('reachinbox_user', JSON.stringify(response.data.user));
-        return;
       }
     } catch {
-      // Fallback to cached session for offline/demo deployments
+      // Backend offline on Vercel preview
     }
-
-    const cached = localStorage.getItem('reachinbox_user');
-    if (cached) {
-      try {
-        setUser(JSON.parse(cached));
-      } catch {
-        setUser(null);
-      }
-    } else {
-      setUser(null);
-    }
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -52,8 +46,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80',
       createdAt: new Date().toISOString(),
     };
-    setUser(demoUser);
     localStorage.setItem('reachinbox_user', JSON.stringify(demoUser));
+    setUser(demoUser);
   };
 
   const loginWithPassword = async (email: string, password: string) => {
@@ -72,8 +66,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
           createdAt: new Date().toISOString(),
         };
-        setUser(demoUser);
         localStorage.setItem('reachinbox_user', JSON.stringify(demoUser));
+        setUser(demoUser);
         return;
       }
       console.error('Password login failed', error);
