@@ -549,34 +549,17 @@ export const DashboardPage: React.FC = () => {
             )}
           </form>
 
-          {/* Header Actions */}
-          <div className="flex items-center gap-3 text-xs text-slate-500">
+          {/* Top Right Header Action */}
+          <div className="flex items-center gap-3">
             <button
-              onClick={() => setIsSlackOpen(true)}
-              title={isSlackConnected ? 'Slack Rate Alerts (Connected)' : 'Configure Slack Rate Alerts'}
-              className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors relative cursor-pointer"
+              type="button"
+              onClick={handleLogout}
+              title="Logout"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition-all cursor-pointer shadow-2xs"
             >
-              <Bell className="w-4 h-4" />
-              {isSlackConnected && (
-                <span className="w-1.5 h-1.5 rounded-full bg-[#00A854] absolute top-1 right-1 ring-2 ring-white" />
-              )}
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Logout</span>
             </button>
-            <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
-              <img
-                src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.email || 'User'}`}
-                alt={user?.name}
-                className="w-7 h-7 rounded-full border border-slate-200 object-cover bg-white shrink-0"
-              />
-              <button
-                type="button"
-                onClick={handleLogout}
-                title="Logout"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span>Logout</span>
-              </button>
-            </div>
           </div>
         </header>
 
