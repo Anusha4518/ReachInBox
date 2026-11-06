@@ -789,38 +789,12 @@ export const DashboardPage: React.FC = () => {
                 {/* 6. Email Body Textarea */}
                 <div className="pt-2">
                   <textarea
-                    rows={10}
+                    rows={12}
                     value={body}
                     onChange={(e) => setBody(e.target.value)}
                     placeholder="Type Your Reply..."
                     className="w-full p-3 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition-all resize-y placeholder:text-slate-300 font-sans leading-relaxed"
                   />
-                </div>
-
-                {/* 7. Bottom Action Bar */}
-                <div className="flex items-center justify-between pt-3 border-t border-slate-100 flex-wrap gap-2">
-                  <span className="text-[11px] text-slate-400">
-                    Click Send to deliver immediately, or Send Later to schedule outreach.
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setIsSendLaterOpen(true)}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-emerald-300 text-[#00A854] hover:bg-emerald-50 text-xs font-semibold cursor-pointer transition-colors"
-                    >
-                      <Clock className="w-3.5 h-3.5" />
-                      <span>Send Later</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleScheduleSubmit({ isImmediate: true })}
-                      disabled={composeLoading}
-                      className="px-5 py-1.5 rounded-full bg-[#00A854] hover:bg-[#009248] text-white text-xs font-semibold shadow-xs transition-all disabled:opacity-60 flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>{composeLoading ? 'Sending...' : 'Send'}</span>
-                    </button>
-                  </div>
                 </div>
               </form>
             </div>
