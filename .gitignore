@@ -16,6 +16,12 @@ dist-ssr
 .env
 .env.production
 
+# Large media files (Upload to Google Drive / YouTube / Loom for ClickUp submission)
+*.mp4
+*.mov
+*.avi
+*.mkv
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

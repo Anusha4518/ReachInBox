@@ -16,6 +16,22 @@ class SmtpService {
     }
 
     this.isInitializing = (async () => {
+      // 1. Real SMTP (e.g. Gmail App Password, SendGrid, Resend) for real inbox notifications
+      if (config.smtp.user && config.smtp.pass) {
+        this.transporter = nodemailer.createTransport({
+          host: config.smtp.host,
+          port: config.smtp.port,
+          secure: config.smtp.secure,
+          auth: {
+            user: config.smtp.user,
+            pass: config.smtp.pass,
+          },
+        });
+        console.log(`🚀 Configured REAL SMTP Delivery via ${config.smtp.host} (${config.smtp.user})`);
+        return;
+      }
+
+      // 2. Ethereal Fake SMTP (Assignment default for testing)
       const hasValidEnvCreds =
         config.ethereal.user &&
         config.ethereal.pass &&
@@ -66,8 +82,10 @@ class SmtpService {
   }): Promise<{ messageId: string; previewUrl: string | false }> {
     const transporter = await this.getTransporter();
 
+    const fromAddress = config.smtp.user || options.from;
+
     const info = await transporter.sendMail({
-      from: `"ReachInbox Outreach" <${options.from}>`,
+      from: `"ReachInbox Outreach" <${fromAddress}>`,
       to: options.to,
       subject: options.subject,
       text: options.body,
