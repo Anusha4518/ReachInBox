@@ -49,26 +49,32 @@ export const DashboardPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'scheduled' | 'sent' | 'compose'>('scheduled');
   const [selectedEmail, setSelectedEmail] = useState<EmailRecord | null>(null);
 
-  // Email lists state with persistent storage
-  const [scheduledEmails, setScheduledEmails] = useState<EmailRecord[]>(() => {
-    try {
-      const saved = localStorage.getItem('reachinbox_scheduled_emails');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-  const [sentEmails, setSentEmails] = useState<EmailRecord[]>(() => {
-    try {
-      const saved = localStorage.getItem('reachinbox_sent_emails');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  // Email lists state - strictly isolated per logged-in user
+  const [scheduledEmails, setScheduledEmails] = useState<EmailRecord[]>([]);
+  const [sentEmails, setSentEmails] = useState<EmailRecord[]>([]);
   const [loadingScheduled, setLoadingScheduled] = useState(false);
   const [loadingSent, setLoadingSent] = useState(false);
   const [isDemoLoading, setIsDemoLoading] = useState(false);
+
+  // Sync isolated email data whenever active user changes
+  useEffect(() => {
+    if (!user?.email) {
+      setScheduledEmails([]);
+      setSentEmails([]);
+      return;
+    }
+    const userKey = `reachinbox_${user.email}`;
+    try {
+      const savedScheduled = localStorage.getItem(`${userKey}_scheduled`);
+      setScheduledEmails(savedScheduled ? JSON.parse(savedScheduled) : []);
+
+      const savedSent = localStorage.getItem(`${userKey}_sent`);
+      setSentEmails(savedSent ? JSON.parse(savedSent) : []);
+    } catch {
+      setScheduledEmails([]);
+      setSentEmails([]);
+    }
+  }, [user?.email]);
 
   // Slack state
   const [isSlackOpen, setIsSlackOpen] = useState(false);
@@ -117,14 +123,16 @@ export const DashboardPage: React.FC = () => {
       const res = await api.get('/emails/scheduled?limit=50');
       if (res.data.emails) {
         setScheduledEmails(res.data.emails);
-        localStorage.setItem('reachinbox_scheduled_emails', JSON.stringify(res.data.emails));
+        if (user?.email) {
+          localStorage.setItem(`reachinbox_${user.email}_scheduled`, JSON.stringify(res.data.emails));
+        }
       }
     } catch (err) {
       console.error('Failed to fetch scheduled emails', err);
     } finally {
       setLoadingScheduled(false);
     }
-  }, []);
+  }, [user?.email]);
 
   const fetchSent = useCallback(async () => {
     const apiUrl = (import.meta as any).env?.VITE_API_URL;
@@ -134,14 +142,16 @@ export const DashboardPage: React.FC = () => {
       const res = await api.get('/emails/sent?limit=50');
       if (res.data.emails) {
         setSentEmails(res.data.emails);
-        localStorage.setItem('reachinbox_sent_emails', JSON.stringify(res.data.emails));
+        if (user?.email) {
+          localStorage.setItem(`reachinbox_${user.email}_sent`, JSON.stringify(res.data.emails));
+        }
       }
     } catch (err) {
       console.error('Failed to fetch sent emails', err);
     } finally {
       setLoadingSent(false);
     }
-  }, []);
+  }, [user?.email]);
 
   const fetchSlackStatus = useCallback(async () => {
     try {
@@ -250,16 +260,34 @@ export const DashboardPage: React.FC = () => {
         'jessica.alvarez@example.com',
       ];
 
-      await api.post('/emails/schedule', {
-        subject: 'ReachInbox AI Lead Outreach',
-        body: 'Hi there,\n\nWe would love to show you how ReachInbox automates high-intent lead generation with AI sequence workflows.\n\nBest regards,\nReachInbox Growth Team',
-        scheduledAt: new Date(Date.now() + 90000).toISOString(),
-        delayBetweenEmails: 2,
-        maxEmailsPerHour: 200,
-        recipients: sampleRecipients,
-      });
-
-      await fetchScheduled();
+      const apiUrl = (import.meta as any).env?.VITE_API_URL;
+      if (apiUrl) {
+        await api.post('/emails/schedule', {
+          subject: 'ReachInbox AI Lead Outreach',
+          body: 'Hi there,\n\nWe would love to show you how ReachInbox automates high-intent lead generation with AI sequence workflows.\n\nBest regards,\nReachInbox Growth Team',
+          scheduledAt: new Date(Date.now() + 90000).toISOString(),
+          delayBetweenEmails: 2,
+          maxEmailsPerHour: 200,
+          recipients: sampleRecipients,
+        });
+        await fetchScheduled();
+      } else {
+        const demoScheduled: EmailRecord[] = sampleRecipients.map((r, i) => ({
+          id: `demo-sch-${Date.now()}-${i}`,
+          userId: user?.id || 'demo-user',
+          recipientEmail: r,
+          subject: 'ReachInbox AI Lead Outreach',
+          body: 'Hi there,\n\nWe would love to show you how ReachInbox automates high-intent lead generation with AI sequence workflows.\n\nBest regards,\nReachInbox Growth Team',
+          scheduledAt: new Date(Date.now() + (i + 1) * 60000).toISOString(),
+          status: 'SCHEDULED' as const,
+          senderEmail: user?.email || 'user@reachinbox.ai',
+          createdAt: new Date().toISOString(),
+        }));
+        setScheduledEmails(demoScheduled);
+        if (user?.email) {
+          localStorage.setItem(`reachinbox_${user.email}_scheduled`, JSON.stringify(demoScheduled));
+        }
+      }
       setActiveTab('scheduled');
     } catch (err: any) {
       console.error('Failed to schedule sample leads', err);
@@ -342,17 +370,19 @@ export const DashboardPage: React.FC = () => {
       createdAt: new Date().toISOString(),
     }));
 
+    const userKey = user?.email ? `reachinbox_${user.email}` : 'reachinbox_default';
+
     if (isSendNow) {
       setSentEmails((prev) => {
         const updated = [...newEmails, ...prev];
-        localStorage.setItem('reachinbox_sent_emails', JSON.stringify(updated));
+        localStorage.setItem(`${userKey}_sent`, JSON.stringify(updated));
         return updated;
       });
       setComposeSuccess('Email sent and delivered successfully!');
     } else {
       setScheduledEmails((prev) => {
         const updated = [...newEmails, ...prev];
-        localStorage.setItem('reachinbox_scheduled_emails', JSON.stringify(updated));
+        localStorage.setItem(`${userKey}_scheduled`, JSON.stringify(updated));
         return updated;
       });
       setComposeSuccess(

@@ -59,13 +59,11 @@ export const LoginPage: React.FC = () => {
     setLoading(true);
     try {
       if (mode === 'signup') {
-        try {
-          await registerWithPassword(email.trim(), password, name.trim());
-        } catch {
-          // Handled gracefully in preview mode
-        }
-        await loginWithPassword(email.trim(), password);
-        navigate('/dashboard');
+        const res = await registerWithPassword(email.trim(), password, name.trim());
+        setSuccessMsg(res?.message || 'Account created successfully! Please sign in with your credentials.');
+        setMode('signin');
+        setPassword('');
+        return;
       } else {
         await loginWithPassword(email.trim(), password);
         navigate('/dashboard');
